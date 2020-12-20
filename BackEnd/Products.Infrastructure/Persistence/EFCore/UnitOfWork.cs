@@ -14,11 +14,11 @@ namespace Products.Infrastructure.Persistence.EFCore
 {
     public class UnitOfWork : IUnitOfWork
     {
-        private readonly DataBaseContext _context;
+        private readonly DataBaseContext _dbContext;
 
         public UnitOfWork(DataBaseContext context)
         {
-            _context = context;
+            _dbContext = context;
         }
 
         public IProductRepository Products { get; private set; }
@@ -28,7 +28,8 @@ namespace Products.Infrastructure.Persistence.EFCore
             var repositories = this.GetAttributeBy<IRepository>();
             foreach (var repository in repositories)
             {
-                var repositoryInstance = new RepositoryFactory().Create(repository.Name, _context);
+                var repositoryName = GetRepostoryNameFromInterface(repository.Name);
+                var repositoryInstance = new RepositoryFactory().Create(repositoryName, _dbContext);
                 this.SetProperty(repository, repositoryInstance);
             }
         }
@@ -37,10 +38,10 @@ namespace Products.Infrastructure.Persistence.EFCore
 
         public async Task<bool> Complete()
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            using var transaction = await _dbContext.Database.BeginTransactionAsync();
             try
             {
-                var result = await _context.SaveChangesAsync();
+                var result = await _dbContext.SaveChangesAsync();
                 transaction.Commit();
                 return result > 0;
             }
@@ -56,7 +57,12 @@ namespace Products.Infrastructure.Persistence.EFCore
         }
 
         public void Dispose()
-            => _context.Dispose();
+            => _dbContext.Dispose();
+
+        #region Helper
+        private string GetRepostoryNameFromInterface(string repoName)
+            => repoName.Substring(1);
+        #endregion
 
 
     }

@@ -4,87 +4,89 @@ using System.Threading.Tasks;
 
 using AutoMapper;
 
-
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 using Products.Domain.Core;
+using Products.Domain.Dto.Product;
 
 namespace Products.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class ProductsController : BaseController
     {
 
         [HttpGet]
         public async Task<IActionResult> GetUsers()
         {
-            var users = await UnitOfWork.Products.GetAll();
+            var products = await UnitOfWork.Products.GetAll();
 
-            var usersToReturn = Mapper.Map<IEnumerable<UserForListDto>>(users);
+            var productsToReturn = Mapper.Map<IEnumerable<ProductForListDto>>(products);
 
-            return Ok(usersToReturn);
+            return Ok(productsToReturn);
         }
 
 
         [HttpGet]
-        [Route("{UserId}", Name = "UserLink")]
+        [Route("{ProductId}", Name = "ProductLink")]
         public async Task<IActionResult> Get(int ProductId)
         {
-            var user = await UnitOfWork.Products.Get(ProductId);
+            var product = await UnitOfWork.Products.Get(ProductId);
 
-            if (user is null)
+            if (product is null)
                 return NotFound();
 
-            var userToReturn = Mapper.Map<UserForDetailDto>(user);
+            var productToReturn = Mapper.Map<ProductForDetailDto>(product);
 
-            return Ok(userToReturn);
+            return Ok(productToReturn);
         }
 
 
         [HttpPost]
-        public async Task<IActionResult> Create(UserForCreationDto ProductDto)
+        public async Task<IActionResult> Create(ProductForCreationDto ProductDto)
         {
             var user = Mapper.Map<Product>(ProductDto);
 
             UnitOfWork.Products.Add(user);
 
             if (await UnitOfWork.Complete())
-                return CreatedAtRoute("UserLink", new { UserId = user.Id }, ProductDto);
+                return CreatedAtRoute("ProductLink", new { ProductId = user.Id }, ProductDto);
 
             throw new Exception($"Something went wrong trying to create an product");
         }
 
         [HttpPut]
-        [Route("{UserId}")]
-        public async Task<IActionResult> Update(int UserId,
-            UserForUpdateDto ProductForUpdate)
+        [Route("{ProductId}")]
+        public async Task<IActionResult> Update(int ProductId,
+            ProductForUpdateDto ProductForUpdate)
         {
-            ProductForUpdate.Id = UserId;
+            ProductForUpdate.Id = ProductId;
 
-            var userFromRepo = await UnitOfWork.Products.Get(UserId);
+            var productFromRepo = await UnitOfWork.Products.Get(ProductId);
 
-            Mapper.Map(ProductForUpdate, userFromRepo);
+            Mapper.Map(ProductForUpdate, productFromRepo);
 
             if (await UnitOfWork.Complete())
                 return Ok();
 
-            throw new Exception($"Update Product {UserId} failed on save");
+            throw new Exception($"Update Product {ProductId} failed on save");
         }
 
         [HttpDelete]
-        [Route("{UserId}")]
-        public async Task<IActionResult> Delete(int UserId)
+        [Route("{ProductId}")]
+        public async Task<IActionResult> Delete(int ProductId)
         {
 
-            var userFromRepo = await UnitOfWork.Products.Get(UserId);
+            var productFromRepo = await UnitOfWork.Products.Get(ProductId);
 
-            UnitOfWork.Products.Remove(userFromRepo);
+            UnitOfWork.Products.Remove(productFromRepo);
 
             if (await UnitOfWork.Complete())
                 return Ok();
 
-            throw new Exception($"Update Product {UserId} failed on save");
+            throw new Exception($"Update Product {ProductId} failed on delete");
         }
 
     }
